@@ -57,7 +57,7 @@ def test_pydantic_schemas_instantiation():
 
 def test_groq_models_configuration():
     """Verify model identifiers and configuration."""
-    assert MODEL_FAST == "gemma2-9b-it"
+    assert MODEL_FAST == "llama-3.1-8b-instant"
     assert MODEL_VERSATILE == "llama-3.3-70b-versatile"
 
 

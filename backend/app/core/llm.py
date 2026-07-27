@@ -8,7 +8,7 @@ from pydantic import BaseModel
 load_dotenv()
 
 # Model identifier constants
-MODEL_FAST = "gemma2-9b-it"
+MODEL_FAST = "llama-3.1-8b-instant"
 MODEL_VERSATILE = "llama-3.3-70b-versatile"
 
 T = TypeVar("T", bound=BaseModel)
