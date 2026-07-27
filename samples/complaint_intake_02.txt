@@ -1,0 +1,27 @@
+PHARMACEUTICAL PRODUCT COMPLAINT FORM
+FORM ID: INTAKE-2026-8831
+
+SECTION 1: COMPLAINANT INFORMATION
+Name: Mark Stevens
+Role: Patient
+Address: 742 Evergreen Terrace, Springfield, IL
+Contact Phone: (555) 234-5678
+Contact Email: mstevens@example.com
+
+SECTION 2: PRODUCT IDENTIFICATION
+Brand Name: NeuroCalm Injection
+Generic Name: Diazepam Injection USP
+Dosage & Strength: 5mg/mL Solution
+Lot/Batch Number: BATCH-88402X
+Expiration Date: 2026-12-31
+NDC Number: 55150-123-10
+
+SECTION 3: COMPLAINT DETAILS & DEFECT CATEGORY
+Date of Incident: July 25, 2026
+Defect Type: Packaging Integrity Failure / Glass Hairline Crack
+Detailed Description:
+Upon opening the outer carton of NeuroCalm Injection, two of the five glass ampoules contained hairline cracks along the neck of the vial, resulting in leakage of fluid into the tray. No administration occurred, and no adverse health consequences were suffered.
+
+SECTION 4: PHYSICAL SAMPLE STATUS
+Sample Available: Yes
+Sample Retained by Complainant: Yes, packaged in protective secondary container.
