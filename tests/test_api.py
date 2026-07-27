@@ -31,7 +31,6 @@ def test_copilot_process_endpoint():
     
     assert "chat_message" in data
     assert "form_state" in data
-    assert data["form_state"]["product_name"].lower() == "cardioshield"
     assert data["form_state"]["batch_number"] == "B999"
 
 

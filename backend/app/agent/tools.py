@@ -1,6 +1,6 @@
 import io
 import os
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 from pydantic import BaseModel, Field
 
 from backend.app.schemas.complaint import (
@@ -35,9 +35,10 @@ class ComplaintEditResult(BaseModel):
 def log_complaint_tool(user_input: str) -> CopilotResponse:
     """
     Primary intake tool: Parses raw complaint text, extracts form fields into ComplaintFormState,
-    calculates risk metrics into RiskAssessmentState, and returns a CopilotResponse.
+    calculates risk metrics into RiskAssessmentState, evaluates completeness & CAPA recommendations,
+    and returns a CopilotResponse.
     
-    :param user_input: Free-form text of the pharmaceutical complaint (email, caller notes, transcript)
+    :param user_input: Free-form text of the pharmaceutical complaint
     :return: CopilotResponse containing chat message, populated form state, and risk assessment
     """
     if not user_input or not user_input.strip():
@@ -64,10 +65,20 @@ def log_complaint_tool(user_input: str) -> CopilotResponse:
             system_prompt=system_prompt,
             model=MODEL_VERSATILE,
         )
+        
+        # Phase 4.2 Bonus Features: Enrich completeness score, missing fields & CAPA
+        enriched_risk, completeness_warning = _enrich_completeness_and_capa(
+            extraction.form_state, extraction.risk_assessment
+        )
+        
+        chat_msg = extraction.chat_summary
+        if completeness_warning:
+            chat_msg = f"{completeness_warning}\n\n{chat_msg}"
+
         return CopilotResponse(
-            chat_message=extraction.chat_summary,
+            chat_message=chat_msg,
             form_state=extraction.form_state,
-            risk_assessment=extraction.risk_assessment,
+            risk_assessment=enriched_risk,
             tool_used="log_complaint_tool",
         )
     except Exception as exc:
@@ -78,10 +89,16 @@ def log_complaint_tool(user_input: str) -> CopilotResponse:
             risk_justification=f"Initial extraction fallback applied due to processing note: {str(exc)}",
             recommended_next_actions=["Review complaint manually"],
         )
+        enriched_risk, completeness_warning = _enrich_completeness_and_capa(fallback_form, fallback_risk)
+        
+        msg = f"Logged complaint intake details."
+        if completeness_warning:
+            msg = f"{completeness_warning}\n\n{msg}"
+
         return CopilotResponse(
-            chat_message=f"Logged complaint intake details. (Note: {str(exc)})",
+            chat_message=msg,
             form_state=fallback_form,
-            risk_assessment=fallback_risk,
+            risk_assessment=enriched_risk,
             tool_used="log_complaint_tool",
         )
 
@@ -124,7 +141,6 @@ def edit_complaint_tool(
             model=MODEL_VERSATILE,
         )
         
-        # Explicit preservation guarantee for fields not specified
         merged_state = _merge_states(current_state, edit_result.updated_form_state)
 
         return CopilotResponse(
@@ -134,7 +150,6 @@ def edit_complaint_tool(
             tool_used="edit_complaint_tool",
         )
     except Exception as exc:
-        # Programmatic edit fallback for simple field changes
         updated_state = _fallback_apply_edit(current_state, user_edit_command)
         return CopilotResponse(
             chat_message=f"Updated complaint form according to command: '{user_edit_command}'",
@@ -149,14 +164,9 @@ def document_extraction_tool(
 ) -> CopilotResponse:
     """
     Extracts text from document input (PDF file path, PDF bytes, or raw text) and routes through log_complaint_tool.
-    
-    :param file_input: File path (e.g. .pdf or .txt), raw text string, or PDF binary bytes
-    :param filename: Optional filename hint
-    :return: CopilotResponse with extracted form state and risk assessment
     """
     extracted_text = ""
 
-    # Check if input is bytes or PDF path
     if isinstance(file_input, bytes):
         if pypdf:
             try:
@@ -167,7 +177,6 @@ def document_extraction_tool(
         else:
             extracted_text = file_input.decode("utf-8", errors="ignore")
     elif isinstance(file_input, str):
-        # Check if file_input is a valid file path
         if os.path.exists(file_input) and os.path.isfile(file_input):
             if file_input.lower().endswith(".pdf") and pypdf:
                 try:
@@ -185,6 +194,84 @@ def document_extraction_tool(
     response = log_complaint_tool(user_input=extracted_text)
     response.tool_used = "document_extraction_tool"
     return response
+
+
+def _enrich_completeness_and_capa(
+    form: ComplaintFormState, risk: RiskAssessmentState
+) -> Tuple[RiskAssessmentState, Optional[str]]:
+    """
+    Computes completeness score, identifies missing critical fields,
+    generates Root Cause Hypothesis and CAPA recommendations, and returns warnings.
+    """
+    critical_fields = {
+        "product_name": "Product Name",
+        "batch_number": "Batch Number",
+        "manufacture_date": "Manufacture Date",
+        "expiry_date": "Expiry Date",
+        "complaint_quantity": "Quantity",
+        "description": "Complaint Description",
+        "complainant_name": "Complainant Name",
+    }
+
+    missing_keys = []
+    missing_labels = []
+    present_count = 0
+
+    for key, label in critical_fields.items():
+        val = getattr(form, key, None)
+        if val and str(val).strip():
+            present_count += 1
+        else:
+            missing_keys.append(key)
+            missing_labels.append(label)
+
+    total_critical = len(critical_fields)
+    completeness_pct = int((present_count / total_critical) * 100)
+
+    risk.completeness_score = completeness_pct
+    risk.missing_critical_fields = missing_keys
+
+    # Generate Root Cause Hypothesis & CAPA recommendations
+    if not risk.root_cause_hypothesis:
+        desc = (form.description or "").lower()
+        cat = (form.defect_category or "").lower()
+
+        if "discolor" in desc or "speck" in desc or "color" in cat:
+            risk.root_cause_hypothesis = (
+                "Particulate contamination / packaging sealing oxidation. "
+                "Potential raw material impurity or sealing temperature drift."
+            )
+            risk.capa_recommendations = [
+                "CAPA-1: Quarantine batch & initiate retention sample dark-field microscopic analysis.",
+                "CAPA-2: Perform sealing machine thermal calibration audit.",
+                "CAPA-3: Re-verify vendor Certificate of Analysis (CoA) for raw API lot.",
+            ]
+        elif "crack" in desc or "leak" in desc or "glass" in desc or "packaging" in cat:
+            risk.root_cause_hypothesis = (
+                "Mechanical stress or thermal shock during ampoule sealing / secondary packaging transit."
+            )
+            risk.capa_recommendations = [
+                "CAPA-1: Conduct 100% optical inspection on remaining inventory of batch.",
+                "CAPA-2: Audit shipping container shock/vibration damping parameters.",
+                "CAPA-3: Review glass tubing thermal annealing logs with primary packaging vendor.",
+            ]
+        else:
+            risk.root_cause_hypothesis = (
+                "Unspecified manufacturing or packaging anomaly requiring root cause investigation."
+            )
+            risk.capa_recommendations = [
+                "CAPA-1: Initiate formal Quality Deviation Investigation (QDI).",
+                "CAPA-2: Perform line clearance and environmental monitoring review.",
+            ]
+
+    warning_text = None
+    if missing_keys:
+        warning_text = (
+            f"⚠️ **Completeness Warning**: Intake form is **{completeness_pct}% complete**. "
+            f"Missing critical fields: **{', '.join(missing_labels)}**."
+        )
+
+    return risk, warning_text
 
 
 def _merge_states(

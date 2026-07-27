@@ -48,6 +48,12 @@ class Complaint(Base):
     regulatory_reportable = Column(Boolean, default=False)
     reporting_deadline_days = Column(Integer, nullable=True)
 
+    # Phase 4.2 Bonus Features
+    completeness_score = Column(Integer, default=100)
+    missing_critical_fields = Column(JSON, default=list)
+    root_cause_hypothesis = Column(Text, nullable=True)
+    capa_recommendations = Column(JSON, default=list)
+
     # Metadata timestamps
     created_at = Column(
         DateTime(timezone=True),
@@ -102,6 +108,10 @@ class Complaint(Base):
             health_hazard_class=hazard,
             regulatory_reportable=self.regulatory_reportable or False,
             reporting_deadline_days=self.reporting_deadline_days,
+            completeness_score=self.completeness_score if self.completeness_score is not None else 100,
+            missing_critical_fields=self.missing_critical_fields or [],
+            root_cause_hypothesis=self.root_cause_hypothesis,
+            capa_recommendations=self.capa_recommendations or [],
         )
 
     @classmethod
@@ -139,4 +149,8 @@ class Complaint(Base):
             health_hazard_class=hazard_str,
             regulatory_reportable=risk.regulatory_reportable if risk else False,
             reporting_deadline_days=risk.reporting_deadline_days if risk else None,
+            completeness_score=risk.completeness_score if risk else 100,
+            missing_critical_fields=risk.missing_critical_fields if risk else [],
+            root_cause_hypothesis=risk.root_cause_hypothesis if risk else None,
+            capa_recommendations=risk.capa_recommendations if risk else [],
         )

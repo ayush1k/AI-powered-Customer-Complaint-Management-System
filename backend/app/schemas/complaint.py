@@ -40,6 +40,12 @@ class RiskAssessmentState(BaseModel):
     regulatory_reportable: bool = Field(False, description="Flag indicating if regulatory report is mandatory")
     reporting_deadline_days: Optional[int] = Field(None, description="Days remaining for regulatory reporting")
 
+    # Phase 4.2 Bonus Features
+    completeness_score: Optional[int] = Field(100, ge=0, le=100, description="Complaint form completeness percentage (0-100%)")
+    missing_critical_fields: List[str] = Field(default_factory=list, description="List of missing required/critical fields")
+    root_cause_hypothesis: Optional[str] = Field(None, description="Automated Root Cause Analysis hypothesis")
+    capa_recommendations: List[str] = Field(default_factory=list, description="Corrective and Preventive Action (CAPA) steps")
+
 class CopilotResponse(BaseModel):
     chat_message: str = Field(..., description="Message from the AI Copilot to the user")
     form_state: Optional[ComplaintFormState] = Field(None, description="Updated state of the left complaint form")
