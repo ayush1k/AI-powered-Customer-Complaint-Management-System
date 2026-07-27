@@ -16,11 +16,11 @@ from backend.app.schemas.complaint import (
 
 @pytest.fixture(scope="module")
 def setup_db():
-    """Create database tables before tests and cleanup after."""
+    """Create database tables before tests."""
     Base.metadata.create_all(bind=engine)
     yield
-    # Cleanup after test suite
-    Base.metadata.drop_all(bind=engine)
+    # Ensure tables are ready for subsequent integration test suites
+    Base.metadata.create_all(bind=engine)
 
 
 def test_create_and_query_complaint(setup_db):
