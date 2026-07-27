@@ -1,13 +1,22 @@
 import os
 import sys
 
-# Ensure workspace root is at the top of sys.path before importing backend modules
-workspace_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-if workspace_root not in sys.path:
-    sys.path.insert(0, workspace_root)
+# Ensure both project root and backend directory are in sys.path
+db_dir = os.path.dirname(os.path.abspath(__file__))
+app_dir = os.path.dirname(db_dir)
+backend_dir = os.path.dirname(app_dir)
+project_root = os.path.dirname(backend_dir)
 
-from backend.app.db.session import engine, SessionLocal, Base
-from backend.app.db.models import Complaint
+for path in [project_root, backend_dir]:
+    if path and path not in sys.path:
+        sys.path.insert(0, path)
+
+try:
+    from backend.app.db.session import engine, SessionLocal, Base
+    from backend.app.db.models import Complaint
+except ImportError:
+    from app.db.session import engine, SessionLocal, Base
+    from app.db.models import Complaint
 
 
 def init_db(seed_data: bool = True):

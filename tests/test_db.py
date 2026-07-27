@@ -1,5 +1,6 @@
 import os
 import sys
+import uuid
 import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -19,7 +20,6 @@ def setup_db():
     """Create database tables before tests."""
     Base.metadata.create_all(bind=engine)
     yield
-    # Ensure tables are ready for subsequent integration test suites
     Base.metadata.create_all(bind=engine)
 
 
@@ -27,11 +27,14 @@ def test_create_and_query_complaint(setup_db):
     """Verify creating and querying a complaint record."""
     db = SessionLocal()
     try:
+        unique_id = f"CMP-TEST-{uuid.uuid4().hex[:6]}"
+        unique_batch = f"BATCH-{uuid.uuid4().hex[:6]}"
+        
         complaint = Complaint(
-            complaint_id="CMP-TEST-100",
+            complaint_id=unique_id,
             product_name="Paracetamol",
             strength="500mg",
-            batch_number="BATCH-TEST-A123",
+            batch_number=unique_batch,
             description="Discolored tablets reported by customer",
             severity="Major",
             risk_justification="Potential quality issue",
@@ -44,10 +47,10 @@ def test_create_and_query_complaint(setup_db):
         db.refresh(complaint)
 
         assert complaint.id is not None
-        assert complaint.complaint_id == "CMP-TEST-100"
+        assert complaint.complaint_id == unique_id
 
         # Query back
-        queried = db.query(Complaint).filter(Complaint.batch_number == "BATCH-TEST-A123").first()
+        queried = db.query(Complaint).filter(Complaint.batch_number == unique_batch).first()
         assert queried is not None
         assert queried.product_name == "Paracetamol"
         assert queried.recommended_actions == ["Investigate lot", "Notify QA"]
@@ -57,8 +60,9 @@ def test_create_and_query_complaint(setup_db):
 
 def test_complaint_pydantic_conversion(setup_db):
     """Verify to_form_state, to_risk_state, and from_states mappings."""
+    unique_id = f"CMP-CONV-{uuid.uuid4().hex[:6]}"
     form = ComplaintFormState(
-        complaint_id="CMP-CONV-200",
+        complaint_id=unique_id,
         product_name="NeuroCalm",
         strength="5mg/mL",
         batch_number="BATCH-88402X",

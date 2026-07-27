@@ -2,12 +2,19 @@ import os
 import sys
 import json
 
-# Ensure project paths are in sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../backend")))
+# Ensure project root and script directory are in sys.path
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(script_dir)
+for p in [project_root, script_dir]:
+    if p and p not in sys.path:
+        sys.path.insert(0, p)
 
-from backend.app.schemas.complaint import ComplaintFormState, RiskAssessmentState
-from backend.app.agent.graph import agent_app, AgentState
+try:
+    from backend.app.schemas.complaint import ComplaintFormState, RiskAssessmentState
+    from backend.app.agent.graph import agent_app, AgentState
+except ImportError:
+    from app.schemas.complaint import ComplaintFormState, RiskAssessmentState
+    from app.agent.graph import agent_app, AgentState
 
 
 def print_agent_turn_result(turn_num: int, prompt: str, state: dict):
