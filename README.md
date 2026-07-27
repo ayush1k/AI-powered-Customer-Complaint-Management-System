@@ -116,9 +116,15 @@ DATABASE_URL=sqlite:///./complaints.db
    ```
 
 6. **Start the FastAPI backend server**:
-   ```bash
-   uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
-   ```
+   - *If running from the project root directory*:
+     ```bash
+     uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
+     ```
+   - *If running from inside the `backend/` directory*:
+     ```bash
+     cd backend
+     uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+     ```
    *The interactive Swagger API documentation will be available at `http://localhost:8000/docs`.*
 
 ---

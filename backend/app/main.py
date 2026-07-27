@@ -1,9 +1,25 @@
+import os
+import sys
 from contextlib import asynccontextmanager
+
+# Ensure both project root and backend directory are in sys.path
+main_dir = os.path.dirname(os.path.abspath(__file__))
+backend_dir = os.path.dirname(main_dir)
+project_root = os.path.dirname(backend_dir)
+
+for path in [project_root, backend_dir]:
+    if path and path not in sys.path:
+        sys.path.insert(0, path)
+
+try:
+    from backend.app.api.endpoints import router as api_router
+    from backend.app.db.init_db import init_db
+except ImportError:
+    from app.api.endpoints import router as api_router
+    from app.db.init_db import init_db
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-from backend.app.api.endpoints import router as api_router
-from backend.app.db.init_db import init_db
 
 # Ensure database tables are created on module import/startup
 init_db(seed_data=True)

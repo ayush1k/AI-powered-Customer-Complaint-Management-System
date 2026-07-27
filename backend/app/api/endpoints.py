@@ -1,17 +1,40 @@
 import io
+import os
+import sys
 from typing import Optional, List, Dict, Any
+
+# Ensure both project root and backend directory are in sys.path
+endpoint_dir = os.path.dirname(os.path.abspath(__file__))
+app_dir = os.path.dirname(endpoint_dir)
+backend_dir = os.path.dirname(app_dir)
+project_root = os.path.dirname(backend_dir)
+
+for path in [project_root, backend_dir]:
+    if path and path not in sys.path:
+        sys.path.insert(0, path)
+
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from backend.app.schemas.complaint import (
-    ComplaintFormState,
-    RiskAssessmentState,
-    CopilotResponse,
-)
-from backend.app.agent.graph import agent_app, AgentState
-from backend.app.db.session import get_db
-from backend.app.db.models import Complaint
+try:
+    from backend.app.schemas.complaint import (
+        ComplaintFormState,
+        RiskAssessmentState,
+        CopilotResponse,
+    )
+    from backend.app.agent.graph import agent_app, AgentState
+    from backend.app.db.session import get_db
+    from backend.app.db.models import Complaint
+except ImportError:
+    from app.schemas.complaint import (
+        ComplaintFormState,
+        RiskAssessmentState,
+        CopilotResponse,
+    )
+    from app.agent.graph import agent_app, AgentState
+    from app.db.session import get_db
+    from app.db.models import Complaint
 
 router = APIRouter()
 
